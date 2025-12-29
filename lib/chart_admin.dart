@@ -209,7 +209,7 @@ class _ChartAdminPageState extends State<ChartAdminPage> {
               dataSource: data,
               xValueMapper: (PollData poll, _) => poll.period,
               yValueMapper: (PollData poll, _) => poll.count,
-              color: const Color.fromARGB(255, 0, 128, 128),
+              color: const Color.fromARGB(255, 11, 73, 139),
               dataLabelSettings: const DataLabelSettings(isVisible: true),
             )
           ],
@@ -222,7 +222,11 @@ class _ChartAdminPageState extends State<ChartAdminPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Poll Stats"),
+        iconTheme: const IconThemeData(
+    color: Colors.white, // 👈 drawer icon color
+  ),
+        backgroundColor: const Color.fromARGB(255, 11, 73, 139),
+        title: const Text("Poll Stats",style: TextStyle(color: Colors.white,fontSize: 22, fontWeight: FontWeight.bold),),
         centerTitle: true,
       ),
       body: Column(
@@ -291,7 +295,7 @@ class _ChartAdminPageState extends State<ChartAdminPage> {
     final isSelected = _selectedView == view;
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
-        backgroundColor: isSelected ? Colors.teal : Colors.grey[300],
+        backgroundColor: isSelected ? const Color.fromARGB(255, 11, 73, 139) : Colors.grey[300],
         foregroundColor: isSelected ? Colors.white : Colors.black,
       ),
       onPressed: () {

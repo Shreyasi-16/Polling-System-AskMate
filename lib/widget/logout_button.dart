@@ -22,7 +22,7 @@ class LogoutButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       leading: const Icon(Icons.logout, color: Colors.red),
-      title: const Text('Logout'),
+      title: const Text('Logout',style: TextStyle(color: Color.fromARGB(255, 3, 3, 71) , fontWeight: FontWeight.w700),),
       onTap: () => _logout(context),
     );
   }

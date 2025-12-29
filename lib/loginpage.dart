@@ -9,6 +9,7 @@ import 'pollPage.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
+
   @override
   State<LoginPage> createState() => _LoginPageState();
 }
@@ -22,9 +23,10 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _login() async {
     final email = _email.text.trim();
     final pass = _password.text;
+
     if (email.isEmpty || pass.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Enter email and password')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Enter email and password')));
       return;
     }
 
@@ -39,13 +41,15 @@ class _LoginPageState extends State<LoginPage> {
       if (q.docs.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('No account found. Please register first.')));
-        await Future.delayed(const Duration(milliseconds: 400));
-        if (!mounted) return;
         Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (_) => RegistrationPage(
-                    prefillEmail: email, prefillRole: _role)));
+          context,
+          MaterialPageRoute(
+            builder: (_) => RegistrationPage(
+              prefillEmail: email,
+              prefillRole: _role,
+            ),
+          ),
+        );
         return;
       }
 
@@ -56,12 +60,17 @@ class _LoginPageState extends State<LoginPage> {
           .collection('users')
           .doc(cred.user!.uid)
           .get();
-      final roleFromDb = doc.data()?['role'] as String? ?? 'user';
+
+      final roleFromDb = doc.data()?['role'] ?? 'user';
 
       if (roleFromDb != _role) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
             content: Text(
-                'Selected role ($_role) does not match account role ($roleFromDb).')));
+              'Selected role ($_role) does not match account role ($roleFromDb)',
+            ),
+          ),
+        );
         await FirebaseAuth.instance.signOut();
         return;
       }
@@ -71,144 +80,187 @@ class _LoginPageState extends State<LoginPage> {
       await prefs.setString('uid', cred.user!.uid);
 
       if (!mounted) return;
-      if (roleFromDb == 'admin') {
-        Navigator.pushReplacement(
-            context, MaterialPageRoute(builder: (_) => const AddPollPage()));
-      } else {
-        Navigator.pushReplacement(
-            context, MaterialPageRoute(builder: (_) => const PollPage()));
-      }
-    } on FirebaseAuthException catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Login error: ${e.message}')));
-    } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Error: $e')));
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) =>
+              roleFromDb == 'admin' ? const AddPollPage() : const PollPage(),
+        ),
+      );
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
   @override
-  void dispose() {
-    _email.dispose();
-    _password.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-              colors: [Color(0xFFC3E4F8), Color(0xFF73D6BE)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight),
+      backgroundColor: const Color(0xFFF5F7FB),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            children: [
+             SizedBox(
+          child: Image.asset("assets/login.png",
+              width: 300, height: 300, fit: BoxFit.cover)  ,
         ),
-        child: Center(
-          child: SingleChildScrollView(
-            child: Card(
-              margin: const EdgeInsets.symmetric(horizontal: 24),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20)),
-              elevation: 8,
-              child: Padding(
+
+             
+
+              // 🔹 Card
+              Container(
                 padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
                       'Login',
-                      style:
-                      TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF213448),
+                      ),
                     ),
-                    const SizedBox(height: 24),
-                    TextField(
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Please sign in to continue',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey,
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    _field(
                       controller: _email,
-                      decoration: InputDecoration(
-                        labelText: 'Email',
-                        prefixIcon: const Icon(Icons.email,color: Color(
-                            0xFF083047)),
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                      ),
+                      label: 'Email',
+                      icon: Icons.email_outlined,
                     ),
-                    const SizedBox(height: 16),
-                    TextField(
+                    const SizedBox(height: 14),
+                    _field(
                       controller: _password,
-                      decoration: InputDecoration(
-                        labelText: 'Password',
-                        prefixIcon: const Icon(Icons.lock),
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                      ),
-                      obscureText: true,
+                      label: 'Password',
+                      icon: Icons.lock_outline,
+                      obscure: true,
                     ),
-                    const SizedBox(height: 16),
+
+                    const SizedBox(height: 14),
+
                     Row(
                       children: [
-                        const Text('Role:'),
+                        const Text(
+                          'Role:',
+                          style: TextStyle(fontWeight: FontWeight.w600,color:const Color.fromARGB(255, 18, 56, 96),)
+                        ),
                         const SizedBox(width: 12),
                         DropdownButton<String>(
                           value: _role,
+                          underline: Container(),
                           items: const [
                             DropdownMenuItem(
-                                value: 'user', child: Text('User')),
+                              value: 'user',
+                              child: Text('User'),
+                            ),
                             DropdownMenuItem(
-                                value: 'admin', child: Text('Admin')),
+                              value: 'admin',
+                              child: Text('Admin'),
+                            ),
                           ],
-                          onChanged: (v) => setState(() => _role = v ?? 'user'),
+                          onChanged: (v) => setState(() => _role = v!),
                         ),
                       ],
                     ),
+
                     const SizedBox(height: 24),
+
                     SizedBox(
                       width: double.infinity,
                       height: 50,
                       child: ElevatedButton(
-                        style: ButtonStyle(
-                          shape:
-                          MaterialStateProperty.all<RoundedRectangleBorder>(
-                            RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color.fromARGB(255, 18, 56, 96),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
                           ),
-                          padding:
-                          MaterialStateProperty.all(const EdgeInsets.all(0)),
                         ),
                         onPressed: _loading ? null : _login,
                         child: _loading
-                            ? const CircularProgressIndicator(
-                          color: Colors.white,
-                        )
+                            ? const CircularProgressIndicator(color: Colors.white)
                             : const Text(
-                          'Login',
+                                'Sign In',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white
+                                ),
+                              ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    Center(
+                      child: TextButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => RegistrationPage(
+                                prefillEmail: _email.text.trim(),
+                                prefillRole: _role,
+                              ),
+                            ),
+                          );
+                        },
+                        child: const Text(
+                          'Don’t have an account? Sign Up',
                           style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold),
+                            color: const Color.fromARGB(255, 18, 56, 96),
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (_) => RegistrationPage(
-                                    prefillEmail: _email.text.trim(),
-                                    prefillRole: _role)));
-                      },
-                      child: const Text(
-                        'No account? Register here',
-                        style: TextStyle(color:Color(0xFF045347)),
-                      ),
-                    )
                   ],
                 ),
               ),
-            ),
+            ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _field({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    bool obscure = false,
+  }) {
+    return TextField(
+      controller: controller,
+      obscureText: obscure,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon),
+        filled: true,
+        fillColor: const Color(0xFFF5F7FB),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide.none,
         ),
       ),
     );

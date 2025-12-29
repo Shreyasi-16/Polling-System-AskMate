@@ -10,7 +10,10 @@ class ChartPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Poll Results")),
+      appBar: AppBar( iconTheme: const IconThemeData(
+    color: Colors.white, // 👈 drawer icon color
+  ),
+        backgroundColor: const Color.fromARGB(255, 11, 73, 139),title: const Text("Poll Results",style: TextStyle(color: Colors.white,fontSize: 22, fontWeight: FontWeight.bold),)),
       body: FutureBuilder<DocumentSnapshot>(
         future: FirebaseFirestore.instance.collection("polls").doc(pollId).get(),
         builder: (context, snapshot) {
@@ -52,8 +55,7 @@ class ChartPage extends StatelessWidget {
                 children: [
                   Text(
                     question,
-                    style: const TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: const Color.fromARGB(255, 0, 0, 0),fontSize: 22, fontWeight: FontWeight.bold),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 16),

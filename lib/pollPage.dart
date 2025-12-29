@@ -64,13 +64,17 @@ class PollPage extends StatelessWidget {
     final now = Timestamp.now();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('User - Polls')),
+      appBar: AppBar(iconTheme: const IconThemeData(
+    color: Colors.white, // 👈 drawer icon color
+  ),
+        backgroundColor: const Color.fromARGB(255, 11, 73, 139),title: const Text('User - Polls',style: TextStyle(color: Colors.white,fontSize: 22, fontWeight: FontWeight.bold))),
       drawer: Drawer(
         child: Column(
           children: [
             UserAccountsDrawerHeader(
-              accountName: const Text('User'),
-              accountEmail: Text(user?.email ?? ''),
+              decoration: const BoxDecoration(color: const Color.fromARGB(255, 11, 73, 139)),
+              accountName: const Text('User',style: TextStyle(color: const Color.fromARGB(255, 244, 244, 245) , fontSize: 22,fontWeight: FontWeight.w800),),
+              accountEmail: Text(user?.email ?? '',style: TextStyle(color: const Color.fromARGB(255, 244, 244, 245) , fontWeight: FontWeight.w800),),
               currentAccountPicture: const CircleAvatar(child: Icon(Icons.person)),
             ),
             const Spacer(),
@@ -118,21 +122,21 @@ class PollPage extends StatelessWidget {
               if (activeDocs.isNotEmpty)
                 const Padding(
                   padding: EdgeInsets.all(8.0),
-                  child: Text("Active Polls", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  child: Text("Active Polls", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700 , color: Color.fromARGB(255, 6, 37, 90))),
                 ),
               ...activeDocs.map((doc) => _buildPollCard(context, doc, user, true)),
 
               if (notActiveDocs.isNotEmpty)
                 const Padding(
                   padding: EdgeInsets.all(8.0),
-                  child: Text("Upcoming Polls", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  child: Text("Upcoming Polls", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700 , color: Color.fromARGB(255, 6, 37, 90))),
                 ),
               ...notActiveDocs.map((doc) => _buildPollCard(context, doc, user, false)),
 
               if (expiredDocs.isNotEmpty)
                 const Padding(
                   padding: EdgeInsets.all(8.0),
-                  child: Text("Expired Polls", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  child: Text("Expired Polls", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700 , color: Color.fromARGB(255, 6, 37, 90))),
                 ),
               ...expiredDocs.map((doc) => _buildPollCard(context, doc, user, false)),
             ],
@@ -163,7 +167,7 @@ class PollPage extends StatelessWidget {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => ChartPage(pollId: doc.id), // 👈 navigate to chart_page.dart
+            builder: (_) => ChartPage(pollId: doc.id), 
           ),
         );
       },
@@ -173,14 +177,14 @@ class PollPage extends StatelessWidget {
           padding: const EdgeInsets.all(12),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(data['question'] ?? '',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700 , color: Color.fromARGB(255, 6, 37, 90))),
             const SizedBox(height: 4),
-            Text('Start: ${data['startTime']?.toDate().toLocal().toString().split(' ')[0]}'),
-            Text('End: ${data['endTime']?.toDate().toLocal().toString().split(' ')[0]}'),
+            Text('Start: ${data['startTime']?.toDate().toLocal().toString().split(' ')[0]}',style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700 , color: Color.fromARGB(255, 130, 163, 219))),
+            Text('End: ${data['endTime']?.toDate().toLocal().toString().split(' ')[0]}',style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700 , color: Color.fromARGB(255, 130, 163, 219))),
             const SizedBox(height: 8),
             Text(
               'Total votes: ${voteCounts.values.fold<int>(0, (sum, val) => sum + val)}',
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              style: TextStyle(fontWeight: FontWeight.w700 , color: Color.fromARGB(255, 6, 37, 90)),
             ),
             const SizedBox(height: 8),
             ...opList.map((opt) {
@@ -194,13 +198,13 @@ class PollPage extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Expanded(child: Text(opt)),
-                        Text('$count votes (${(percent * 100).toStringAsFixed(1)}%)'),
+                        Expanded(child: Text(opt,style: TextStyle(fontWeight: FontWeight.w700 , color: Color.fromARGB(255, 6, 37, 90)))),
+                        Text('$count votes (${(percent * 100).toStringAsFixed(1)}%)',style: TextStyle(fontWeight: FontWeight.w700 , color: Color.fromARGB(255, 6, 37, 90))),
                         const SizedBox(width: 12),
                         if (isActive)
                           ElevatedButton(
                             onPressed: hasVoted ? null : () => _vote(context, doc.id, opt),
-                            child: const Text('Vote'),
+                            child: const Text('Vote',style: TextStyle(fontWeight: FontWeight.w700 , color: Color.fromARGB(255, 6, 37, 90))),
                           ),
                       ],
                     ),

@@ -3,6 +3,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'widget/logout_button.dart';
 import 'chart_admin.dart';
+
+/* 🎨 ColorHunt Palette */
+
+const Color blue = Color(0xFF547792);
+const Color lightBlue = Color(0xFF94B4C1);
+
+
 class AddPollPage extends StatefulWidget {
   const AddPollPage({super.key});
 
@@ -23,12 +30,25 @@ class _AddPollPageState extends State<AddPollPage> {
 
   User? get _user => FirebaseAuth.instance.currentUser;
 
+  // ------------------ DATE PICKER ------------------
   Future<void> _pickDateTime({required bool isStart}) async {
     final date = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
+      builder: (context, child) {
+        return Theme(
+          data: ThemeData.light().copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color.fromARGB(255, 19, 88, 141),
+              onPrimary: Colors.white,
+              surface: Color.fromARGB(255, 255, 255, 255),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (date == null) return;
 
@@ -38,35 +58,24 @@ class _AddPollPageState extends State<AddPollPage> {
     );
     if (time == null) return;
 
-    final dateTime = DateTime(
-      date.year,
-      date.month,
-      date.day,
-      time.hour,
-      time.minute,
-    );
-
     setState(() {
+      final dt = DateTime(date.year, date.month, date.day, time.hour, time.minute);
       if (isStart) {
-        _startTime = dateTime;
+        _startTime = dt;
       } else {
-        _endTime = dateTime;
+        _endTime = dt;
       }
     });
   }
 
+  // ------------------ SAVE / UPDATE ------------------
   Future<void> _addOrUpdatePoll() async {
     final q = _question.text.trim();
     final a = _op1.text.trim();
     final b = _op2.text.trim();
     final c = _op3.text.trim();
 
-    if (q.isEmpty ||
-        a.isEmpty ||
-        b.isEmpty ||
-        c.isEmpty ||
-        _startTime == null ||
-        _endTime == null) {
+    if (q.isEmpty || a.isEmpty || b.isEmpty || c.isEmpty || _startTime == null || _endTime == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Fill all fields and select start/end time')),
       );
@@ -84,10 +93,7 @@ class _AddPollPageState extends State<AddPollPage> {
 
     try {
       if (_editingPollId != null) {
-        await FirebaseFirestore.instance
-            .collection('polls')
-            .doc(_editingPollId)
-            .update({
+        await FirebaseFirestore.instance.collection('polls').doc(_editingPollId).update({
           'question': q,
           'op1': a,
           'op2': b,
@@ -96,28 +102,15 @@ class _AddPollPageState extends State<AddPollPage> {
           'endTime': Timestamp.fromDate(_endTime!),
         });
 
-        // ✅ Reset form after update
-        _editingPollId = null;
-        _question.clear();
-        _op1.clear();
-        _op2.clear();
-        _op3.clear();
-        setState(() {
-          _startTime = null;
-          _endTime = null;
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Poll updated successfully')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Poll updated successfully')));
       } else {
-        // Add new poll
         await FirebaseFirestore.instance.collection('polls').add({
           'question': q,
           'op1': a,
           'op2': b,
           'op3': c,
-          'votes': {}, // uid -> option
+          'votes': {},
           'createdBy': _user?.uid,
           'createdAt': FieldValue.serverTimestamp(),
           'startTime': Timestamp.fromDate(_startTime!),
@@ -125,23 +118,19 @@ class _AddPollPageState extends State<AddPollPage> {
         });
       }
 
+      _editingPollId = null;
       _question.clear();
       _op1.clear();
       _op2.clear();
       _op3.clear();
-      setState(() {
-        _startTime = null;
-        _endTime = null;
-      });
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error saving poll: $e')),
-      );
+      _startTime = null;
+      _endTime = null;
     } finally {
       if (mounted) setState(() => _saving = false);
     }
   }
 
+  // ------------------ EDIT ------------------
   Future<void> _editPoll(DocumentSnapshot doc) async {
     final data = doc.data() as Map<String, dynamic>;
     setState(() {
@@ -155,59 +144,49 @@ class _AddPollPageState extends State<AddPollPage> {
     });
   }
 
-  Future<Map<String, String>> _getUserVoteEmails(Map<String, dynamic> votes) async {
-    Map<String, String> map = {};
-    for (var uid in votes.keys) {
-      try {
-        final doc =
-        await FirebaseFirestore.instance.collection('users').doc(uid).get();
-        map[doc.data()?['email'] ?? uid] = votes[uid];
-      } catch (_) {
-        map[uid] = votes[uid];
-      }
-    }
-    return map;
+  String formatDateTime(DateTime? dt) {
+    if (dt == null) return 'Select date & time';
+    return '${dt.day}/${dt.month}/${dt.year}  ${dt.hour}:${dt.minute.toString().padLeft(2, '0')}';
   }
 
-  @override
-  void dispose() {
-    _question.dispose();
-    _op1.dispose();
-    _op2.dispose();
-    _op3.dispose();
-    super.dispose();
-  }
-
+  // ------------------ UI ------------------
   @override
   Widget build(BuildContext context) {
     final user = _user;
 
-    String formatDateTime(DateTime? dt) {
-      if (dt == null) return 'Select';
-      return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} '
-          '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}:${dt.second.toString().padLeft(2, '0')}';
-    }
-
     return Scaffold(
-      appBar: AppBar(title: const Text('Admin - Manage Polls')),
+      
+      appBar: AppBar(
+        iconTheme: const IconThemeData(
+    color: Colors.white, // 👈 drawer icon color
+  ),
+        backgroundColor: const Color.fromARGB(255, 11, 73, 139),
+        title: const Text(
+          'Manage Polls',
+          style: TextStyle(color: Colors.white,fontSize: 22, fontWeight: FontWeight.bold),
+        ),
+      ),
+
       drawer: Drawer(
+        backgroundColor: const Color.fromARGB(255, 232, 230, 227),
         child: Column(
           children: [
             UserAccountsDrawerHeader(
-              accountName: const Text('Admin'),
-              accountEmail: Text(user?.email ?? ''),
-              currentAccountPicture:
-              const CircleAvatar(child: Icon(Icons.person)),
+              decoration: const BoxDecoration(color: const Color.fromARGB(255, 11, 73, 139)),
+              accountName: const Text('Admin',style: TextStyle(color: const Color.fromARGB(255, 244, 244, 245) , fontSize: 22,fontWeight: FontWeight.w800),),
+              accountEmail: Text(user?.email ?? '' , style: TextStyle(color: const Color.fromARGB(255, 244, 244, 245) , fontWeight: FontWeight.w800),),
+              currentAccountPicture: const CircleAvatar(
+                backgroundColor: lightBlue,
+                child: Icon(Icons.person, color: const Color.fromARGB(255, 11, 73, 139)),
+              ),
             ),
             ListTile(
-              leading: const Icon(Icons.poll, color: Colors.blue),
-              title: const Text('Poll Stats'),
+              leading: const Icon(Icons.bar_chart, color: Color.fromARGB(255, 8, 33, 53)),
+              title: const Text('Poll Stats',style: TextStyle(color: Color.fromARGB(255, 3, 3, 71) , fontWeight: FontWeight.w700),),
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => const ChartAdminPage(),
-                  ),
+                  MaterialPageRoute(builder: (_) => const ChartAdminPage()),
                 );
               },
             ),
@@ -218,85 +197,79 @@ class _AddPollPageState extends State<AddPollPage> {
       ),
 
       body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Add/Edit Poll Form
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  TextField(
-                    controller: _question,
-                    decoration: const InputDecoration(labelText: 'Poll Question'),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _op1,
-                    decoration: const InputDecoration(labelText: 'Option 1'),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _op2,
-                    decoration: const InputDecoration(labelText: 'Option 2'),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _op3,
-                    decoration: const InputDecoration(labelText: 'Option 3'),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      ElevatedButton(
-                        onPressed: () => _pickDateTime(isStart: true),
-                        child: Text('Start: ${formatDateTime(_startTime)}'),
+            // ---------------- FORM CARD ----------------
+            Card(
+              color: Colors.white,
+              elevation: 6,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    const Text(
+                      'Create / Update Poll',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: const Color.fromARGB(255, 11, 73, 139),
                       ),
-                      const SizedBox(width: 12),
-                      ElevatedButton(
-                        onPressed: () => _pickDateTime(isStart: false),
-                        child: Text('End: ${formatDateTime(_endTime)}'),
+                    ),
+                    const SizedBox(height: 16),
+                    _input(_question, 'Poll Question', Icons.help_outline),
+                    _input(_op1, 'Option 1', Icons.looks_one),
+                    _input(_op2, 'Option 2', Icons.looks_two),
+                    _input(_op3, 'Option 3', Icons.looks_3),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        _dateBtn('Start', formatDateTime(_startTime), () => _pickDateTime(isStart: true)),
+                        const SizedBox(width: 12),
+                        _dateBtn('End', formatDateTime(_endTime), () => _pickDateTime(isStart: false)),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor:Color.fromARGB(255, 8, 54, 102),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onPressed: _saving ? null : _addOrUpdatePoll,
+                        child: Text(
+                          _editingPollId != null ? 'Update Poll' : 'Add Poll',
+                          style: const TextStyle(color: Colors.white,fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  ElevatedButton(
-                    onPressed: _saving ? null : _addOrUpdatePoll,
-                    child: _saving
-                        ? const CircularProgressIndicator()
-                        : Text(_editingPollId != null
-                        ? 'Update Poll'
-                        : 'Add Poll'),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(),
-
-            // List admin's polls
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Your Polls',
-                  style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                  ],
                 ),
               ),
             ),
+
+            const SizedBox(height: 24),
+            const Text(
+              'Your Polls',
+              style: TextStyle(fontSize:22, fontWeight: FontWeight.bold, color: Color.fromARGB(255, 8, 54, 102)),
+            ),
+            const SizedBox(height: 8),
+
+            // ---------------- POLL LIST ----------------
             StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('polls')
                   .orderBy('createdAt', descending: true)
                   .snapshots(),
               builder: (context, snap) {
-                if (snap.connectionState == ConnectionState.waiting) {
+                if (!snap.hasData) {
                   return const Center(child: CircularProgressIndicator());
-                }
-                if (!snap.hasData || snap.data!.docs.isEmpty) {
-                  return const Padding(
-                    padding: EdgeInsets.all(20),
-                    child: Text('You have not created any polls yet.'),
-                  );
                 }
 
                 final docs = snap.data!.docs.where((doc) {
@@ -311,104 +284,78 @@ class _AddPollPageState extends State<AddPollPage> {
                   );
                 }
 
-                return ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: docs.length,
-                  itemBuilder: (context, i) {
-                    final doc = docs[i];
+                return Column(
+                  children: docs.map((doc) {
                     final data = doc.data() as Map<String, dynamic>;
-                    final votes = Map<String, dynamic>.from(data['votes'] ?? {});
-                    final opList = [data['op1'], data['op2'], data['op3']]
-                        .whereType<String>()
-                        .toList();
-
-                    // Vote counts
-                    final voteCounts = {for (var op in opList) op: 0};
-                    votes.values.forEach((v) {
-                      if (voteCounts.containsKey(v)) {
-                        voteCounts[v] = voteCounts[v]! + 1;
-                      }
-                    });
-
-                    return FutureBuilder<Map<String, String>>(
-                      future: _getUserVoteEmails(votes),
-                      builder: (context, snapshot) {
-                        final userVotes = snapshot.data ?? {};
-                        return Card(
-                          margin: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 8),
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  data['question'] ?? '',
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                    'Start: ${data['startTime']?.toDate().toLocal().toString()}'),
-                                Text(
-                                    'End: ${data['endTime']?.toDate().toLocal().toString()}'),
-                                const SizedBox(height: 8),
-                                ...opList.map((op) =>
-                                    Text('$op: ${voteCounts[op]}')),
-                                const SizedBox(height: 8),
-                                DropdownButton<String>(
-                                  hint: const Text('View who voted'),
-                                  items: userVotes.entries
-                                      .map(
-                                        (e) => DropdownMenuItem(
-                                      value: e.key,
-                                      child: Text('${e.key} → ${e.value}'),
-                                    ),
-                                  )
-                                      .toList(),
-                                  onChanged: (_) {},
-                                ),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    IconButton(
-                                      tooltip: 'Edit',
-                                      icon: const Icon(Icons.edit,
-                                          color: Colors.blue),
-                                      onPressed: () => _editPoll(doc),
-                                    ),
-                                    IconButton(
-                                      tooltip: 'Delete',
-                                      icon: const Icon(Icons.delete,
-                                          color: Colors.red),
-                                      onPressed: () async {
-                                        await FirebaseFirestore.instance
-                                            .collection('polls')
-                                            .doc(doc.id)
-                                            .delete();
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(
-                                          const SnackBar(
-                                              content: Text('Poll deleted')),
-                                        );
-                                      },
-                                    ),
-                                  ],
-                                ),
-                              ],
+                    return Card(
+                      margin: const EdgeInsets.symmetric(vertical: 6),
+                      child: ListTile(
+                        title: Text(data['question'], style: const TextStyle(fontWeight: FontWeight.w600)),
+                        subtitle: Text('Start: ${formatDateTime((data['startTime'] as Timestamp?)?.toDate())}'),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit, color: blue),
+                              onPressed: () => _editPoll(doc),
                             ),
-                          ),
-                        );
-                      },
+                            IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: () async {
+                                await FirebaseFirestore.instance
+                                    .collection('polls')
+                                    .doc(doc.id)
+                                    .delete();
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
                     );
-                  },
+                  }).toList(),
                 );
               },
             ),
-            const SizedBox(height: 30),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ---------------- INPUT ----------------
+  Widget _input(TextEditingController c, String label, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: TextField(
+        controller: c,
+        decoration: InputDecoration(
+          prefixIcon: Icon(icon, color: Color.fromARGB(255, 8, 54, 102)),
+          labelText: label,
+          labelStyle: const TextStyle(color: Color.fromARGB(255, 8, 54, 102)),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: blue, width: 2),
+          ),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      ),
+    );
+  }
+
+  // ---------------- DATE BUTTON ----------------
+  Widget _dateBtn(String title, String value, VoidCallback onTap) {
+    return Expanded(
+      child: OutlinedButton(
+        style: OutlinedButton.styleFrom(
+          side: const BorderSide(color: Color.fromARGB(255, 8, 54, 102)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        onPressed: onTap,
+        child: Column(
+          children: [
+            Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: Color.fromARGB(255, 8, 54, 102))),
+            const SizedBox(height: 4),
+            Text(value, textAlign: TextAlign.center, style: const TextStyle(color: Color.fromARGB(255, 8, 54, 102))),
           ],
         ),
       ),
